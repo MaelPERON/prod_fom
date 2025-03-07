@@ -1,6 +1,8 @@
 import bpy
 import os
+import re
 from bpy.types import Operator
+from bpy.path import basename
 
 class Mixin():
 	@classmethod
@@ -92,3 +94,77 @@ class OpenFileBrowser(Mixin, Operator):
 
 
 		return {"FINISHED"}
+
+class ClearAssetFile(Mixin, Operator):
+	bl_idname = "scene.fom_asset_clear"
+	bl_label = "Clear Asset File"
+	asset = None
+
+	overwrite: bpy.props.BoolProperty(name="Overwrite File", description="Automatically saves after removing assets from file.", default=False)
+
+	# Split the file name by "-"
+	def get_file_params(self, filepath):
+		file_name = basename(filepath)
+		params = file_name.split("-")
+		if len(params) != 5:
+			raise None
+
+		project, asset_type, asset_name, task, version = params
+		obj = {
+			"file_name": file_name,
+			"filepath": filepath,
+			"project": project,
+			"asset_type": asset_type,
+			"asset_name": asset_name,
+			"task": task,
+			"version": int(re.sub(r"(v)?(\d{1,})(\.blend)", r"\2", version))
+		}
+		return obj
+	
+	@classmethod
+	def poll(self, context):
+		self.asset = self.get_file_params(self, context.blend_data.filepath)
+		return self.asset is not None
+	
+	def execute(self, context):
+		directory = os.path.dirname(context.blend_data.filepath)
+		version_list = []
+
+		for filename in os.listdir(directory):
+			if filename.endswith(".blend") and filename != self.asset["file_name"]:
+				filepath = os.path.join(directory, filename)
+				file_params = self.get_file_params(self, filepath)
+				if file_params is not None:
+					print(f"Adding version from {filename}")
+					version_list.append(file_params["version"])
+
+		# Get the latest version number
+		if len(version_list) < 1:
+			self.report({"WARN"}, "No other files found in the directory")
+			return {"CANCELLED"}
+		
+		latest_version = max(version_list)
+
+		if latest_version > self.asset["version"]:
+			# Get all objects and collections marked as assets
+			assets = []
+			for obj in bpy.data.objects:
+				if obj.asset_data is not None:
+					assets.append(obj)
+			for collection in bpy.data.collections:
+				if collection.asset_data is not None:
+					assets.append(collection)
+
+			for asset in assets:
+				# Remove the asset data
+				self.report({"INFO"}, f"Clearing asset {asset.name}")
+				asset.asset_clear()
+
+			# Save the file if OVERWRITE is set to True
+			if self.overwrite:
+				print("Saving file...")
+				bpy.ops.wm.save_mainfile()
+				print("File saved.")
+			
+			return {"FINISHED"}
+		self.report({"INFO"}, "No newer versions found. Cannot remove assets.")
