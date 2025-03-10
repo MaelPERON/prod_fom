@@ -168,3 +168,34 @@ class ClearAssetFile(Mixin, Operator):
 			
 			return {"FINISHED"}
 		self.report({"INFO"}, "No newer versions found. Cannot remove assets.")
+
+class OpenAssetFolder(Mixin, Operator):
+	bl_idname = "scene.fom_asset_open_folder"
+	bl_label = "Open Asset Folder"
+
+	@classmethod
+	def poll(self, context):
+		return context.asset is not None
+
+	def execute(self, context):
+		asset = context.asset
+		if not asset:
+			self.report({"ERROR"}, "No asset selected")
+			return {"CANCELLED"}
+
+		asset_path = bpy.path.abspath(asset.full_library_path)
+		folder_path = asset_path[:-len(bpy.path.basename(asset_path))]
+		if not os.path.exists(folder_path):
+			self.report({"ERROR"}, "Asset path does not exist")
+			return {"CANCELLED"}
+
+		# Open the file explorer at the asset location
+		if os.name == 'nt':
+			os.startfile(folder_path)
+		elif os.name == 'posix':
+			os.system(f'xdg-open "{folder_path}"')
+		else:
+			self.report({"ERROR"}, "Unsupported OS")
+			return {"CANCELLED"}
+
+		return {"FINISHED"}
