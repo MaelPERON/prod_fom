@@ -103,14 +103,15 @@ class ClearAssetFile(Mixin, Operator):
 	overwrite: bpy.props.BoolProperty(name="Overwrite File", description="Automatically saves after removing assets from file.", default=False)
 
 	# Split the file name by "-"
-	def get_file_params(self, filepath):
+	@staticmethod
+	def get_file_params(filepath):
 		file_name = basename(filepath)
 		params = file_name.split("-")
 		if len(params) != 5:
 			raise None
 
 		project, asset_type, asset_name, task, version = params
-		obj = {
+		return {
 			"file_name": file_name,
 			"filepath": filepath,
 			"project": project,
@@ -119,21 +120,20 @@ class ClearAssetFile(Mixin, Operator):
 			"task": task,
 			"version": int(re.sub(r"(v)?(\d{1,})(\.blend)", r"\2", version))
 		}
-		return obj
 	
 	@classmethod
 	def poll(self, context):
-		self.asset = self.get_file_params(self, context.blend_data.filepath)
-		return self.asset is not None
+		return self.get_file_params(context.blend_data.filepath) is not None
 	
 	def execute(self, context):
 		directory = os.path.dirname(context.blend_data.filepath)
+		self.asset = self.get_file_params(context.blend_data.filepath)
 		version_list = []
 
 		for filename in os.listdir(directory):
 			if filename.endswith(".blend") and filename != self.asset["file_name"]:
 				filepath = os.path.join(directory, filename)
-				file_params = self.get_file_params(self, filepath)
+				file_params = self.get_file_params(filepath)
 				if file_params is not None:
 					print(f"Adding version from {filename}")
 					version_list.append(file_params["version"])
