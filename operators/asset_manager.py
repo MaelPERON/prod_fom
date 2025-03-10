@@ -2,7 +2,7 @@ import bpy
 import os
 import re
 from bpy.types import Operator
-from bpy.path import basename
+from bpy.path import basename, display_name_from_filepath
 
 class Mixin():
 	@classmethod
@@ -198,4 +198,52 @@ class OpenAssetFolder(Mixin, Operator):
 			self.report({"ERROR"}, "Unsupported OS")
 			return {"CANCELLED"}
 
+		return {"FINISHED"}
+	
+class SetExporters(Mixin, Operator):
+	bl_idname = "scene.fom_set_exporters"
+	bl_label = "Set Exporters"
+
+	def execute(self, context):
+		high_settings = {'add_leaf_bones': True, 'apply_scale_options': 'FBX_SCALE_NONE', 'apply_unit_scale': True, 'armature_nodetype': 'NULL', 'axis_forward': '-Z', 'axis_up': 'Y', 'bake_anim': False, 'bake_anim_force_startend_keying': True, 'bake_anim_simplify_factor': 1.0, 'bake_anim_step': 1.0, 'bake_anim_use_all_actions': True, 'bake_anim_use_all_bones': True, 'bake_anim_use_nla_strips': True, 'bake_space_transform': False, 'batch_mode': 'OFF', 'check_existing': True, 'collection': '', 'colors_type': 'SRGB', 'embed_textures': False, 'filepath': '//..\\export\\{{name}}_high.fbx', 'filter_glob': '*.fbx', 'global_scale': 1.0, 'mesh_smooth_type': 'OFF', 'object_types': {'MESH'}, 'path_mode': 'RELATIVE', 'primary_bone_axis': 'Y', 'prioritize_active_color': False, 'secondary_bone_axis': 'X', 'use_active_collection': False, 'use_armature_deform_only': False, 'use_batch_own_dir': True, 'use_custom_props': False, 'use_mesh_edges': False, 'use_mesh_modifiers': True, 'use_mesh_modifiers_render': True, 'use_metadata': True, 'use_selection': False, 'use_space_transform': True, 'use_subsurf': False, 'use_triangles': False, 'use_tspace': False, 'use_visible': False}
+		low_settings = {'add_leaf_bones': True, 'apply_scale_options': 'FBX_SCALE_NONE', 'apply_unit_scale': True, 'armature_nodetype': 'NULL', 'axis_forward': '-Z', 'axis_up': 'Y', 'bake_anim': False, 'bake_anim_force_startend_keying': True, 'bake_anim_simplify_factor': 1.0, 'bake_anim_step': 1.0, 'bake_anim_use_all_actions': True, 'bake_anim_use_all_bones': True, 'bake_anim_use_nla_strips': True, 'bake_space_transform': False, 'batch_mode': 'OFF', 'check_existing': True, 'collection': '', 'colors_type': 'SRGB', 'embed_textures': False, 'filepath': '//..\\export\\{{name}}_low.fbx', 'filter_glob': '*.fbx', 'global_scale': 1.0, 'mesh_smooth_type': 'OFF', 'object_types': {'MESH'}, 'path_mode': 'RELATIVE', 'primary_bone_axis': 'Y', 'prioritize_active_color': False, 'secondary_bone_axis': 'X', 'use_active_collection': False, 'use_armature_deform_only': False, 'use_batch_own_dir': True, 'use_custom_props': False, 'use_mesh_edges': False, 'use_mesh_modifiers': True, 'use_mesh_modifiers_render': True, 'use_metadata': True, 'use_selection': False, 'use_space_transform': True, 'use_subsurf': False, 'use_triangles': False, 'use_tspace': False, 'use_visible': False}
+
+		filename = display_name_from_filepath(bpy.data.filepath)
+		object = filename.split('-')[-2]
+
+		def obj_to_json(obj):
+			new_obj = {}
+			for attr in dir(obj):
+				if attr.startswith("__") or attr.startswith("bl_"): continue
+				value = getattr(obj, attr, None)
+				id_data = getattr(value, "id_data", None)
+				# print(attr, value, id_data)
+				new_obj[attr] = value if id_data is None else None
+			return new_obj
+
+		def get_collection(string):
+			list = [coll for coll in bpy.data.collections if string in coll.name]
+			return None if len(list) < 1 else list[0]
+
+		collections = {
+			"high": get_collection("High"),
+			"low": get_collection("Low")
+		}
+
+		for type, collection in collections.items():
+			if collection is None:
+				print(f"{type} collection not available")
+			with context.temp_override(collection=collection):
+				if len(collection.exporters) < 1:
+					self.report({"INFO"}, f"Added exporter {type} to {collection.name}")
+					bpy.ops.collection.exporter_add('INVOKE_DEFAULT',name="IO_FH_fbx")
+				exporter = collection.exporters[0]
+				settings = exporter.export_properties
+				new_settings = low_settings if type == "low" else high_settings
+				for setting, value in new_settings.items():
+					setattr(settings, setting, value)
+
+				settings.filepath = settings.filepath.replace("{{name}}", object)
+
+			self.report({"INFO"}, f"Settings set for {collection.name}")
 		return {"FINISHED"}
