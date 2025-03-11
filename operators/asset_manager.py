@@ -3,6 +3,7 @@ import os
 import re
 from bpy.types import Operator
 from bpy.path import basename, display_name_from_filepath
+from ..utils import get_collection
 
 class Mixin():
 	@classmethod
@@ -221,10 +222,6 @@ class SetExporters(Mixin, Operator):
 				new_obj[attr] = value if id_data is None else None
 			return new_obj
 
-		def get_collection(string):
-			list = [coll for coll in bpy.data.collections if string in coll.name]
-			return None if len(list) < 1 else list[0]
-
 		collections = {
 			"high": get_collection("High"),
 			"low": get_collection("Low")
@@ -246,4 +243,22 @@ class SetExporters(Mixin, Operator):
 				settings.filepath = settings.filepath.replace("{{name}}", object)
 
 			self.report({"INFO"}, f"Settings set for {collection.name}")
+		return {"FINISHED"}
+
+class LowCollectionPreparation(Mixin, Operator):
+	bl_idname = "scene.fom_low_collection_preparation"
+	bl_label = "Low Collection Preparation"
+
+	def execute(self, context):
+		collection = get_collection("Low")
+		if collection is None:
+			self.report({"WARN"}, f"Could not find low poly collection")
+			return {"CANCELLED"}
+		
+		for obj in collection.objects:
+			if obj.type == "MESH":
+				for mod in obj.modifiers:
+					if mod.type.lower() not in ["nodes","mask","multires","armature","collision","particle_instance","particle_system"]:
+						print(f"[{obj.name}]\t\tremoving '{mod.name}'\t({mod.type})")
+						obj.modifiers.remove(mod)
 		return {"FINISHED"}
