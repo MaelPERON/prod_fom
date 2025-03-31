@@ -1,4 +1,6 @@
 import bpy
+from bpy.path import display_name_from_filepath
+from pathlib import Path
 
 def get_collection(string):
     list = [coll for coll in bpy.data.collections if string in coll.name]
@@ -22,3 +24,6 @@ def obj_to_json(obj):
         # print(attr, value, id_data)
         new_obj[attr] = value if id_data is None else None
     return new_obj
+
+def get_work_dir(filepath):
+    return Path(filepath).parent
