@@ -27,3 +27,9 @@ def obj_to_json(obj):
 
 def get_work_dir(filepath):
     return Path(filepath).parent
+
+def refresh_areas(areas=None):
+    areas = areas or bpy.context.screen.areas
+    for area in areas:
+        if area.type == "VIEW_3D":
+            area.tag_redraw()
