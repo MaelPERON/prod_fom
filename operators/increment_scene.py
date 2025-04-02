@@ -2,9 +2,7 @@ import bpy
 from os import path
 from bpy.path import basename
 import re
-
-def extract_from_filename(filename):
-    return re.search(r"fom-seq_(\w*)-sh_(\d{1,})-(\w*)-v(\d{1,})", filename)
+from ..utils import extract_from_filename
 
 def increment_file(filepath, new_stage=None):
     work = path.dirname(filepath)

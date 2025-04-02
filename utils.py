@@ -1,4 +1,5 @@
 import bpy
+import re
 from bpy.path import display_name_from_filepath
 from pathlib import Path
 
@@ -33,3 +34,6 @@ def refresh_areas(areas=None):
     for area in areas:
         if area.type == "VIEW_3D":
             area.tag_redraw()
+
+def extract_from_filename(filename):
+    return re.search(r"fom-seq_(\w*)-sh_(\d{1,})-(\w*)-v(\d{1,})", filename)
