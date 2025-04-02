@@ -1,0 +1,24 @@
+{
+    "resolution_x": 1920,
+    "resolution_y": 1080,
+    "resolution_percentage": 100,
+    "image_settings": {
+        "file_format": "FFMPEG",
+        "color_mode": "RGB",
+        "color_depth": "8",
+        "compression": 15
+    },
+    "fps": 24,
+    "fps_base": 1.0,
+    "filepath": "c:/tmp/FOM/playblasts/",
+    "ffmpeg": {
+        "format": "MPEG4",
+        "codec": "H264",
+        "audio_codec": "NONE",
+        "video_bitrate": 6000,
+        "audio_bitrate": 192,
+        "gopsize": 18,
+        "max_b_frames": 0,
+        "use_lossless_output": false
+    }
+}
