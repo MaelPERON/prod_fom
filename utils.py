@@ -1,5 +1,8 @@
 import bpy
 import re
+import os
+import platform
+import subprocess
 from bpy.path import display_name_from_filepath
 from pathlib import Path
 
@@ -37,3 +40,12 @@ def refresh_areas(areas=None):
 
 def extract_from_filename(filename):
     return re.search(r"fom-seq_(\w*)-sh_(\d{1,})-(\w*)-v(\d{1,})", filename)
+
+def open_directory_in_explorer(path):
+    path = re.sub(r'\/', r'\\', path)
+    if platform.system() == "Windows":
+        subprocess.Popen(f'explorer "{path}"')
+    elif platform.system() == "Darwin":  # macOS
+        subprocess.Popen(['open', path])
+    else:  # Linux ?
+        subprocess.Popen(['xdg-open', path])
