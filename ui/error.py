@@ -101,6 +101,5 @@ def register():
     bpy.types.VIEW3D_HT_header.append(draw_custom_menu)
 
 def unregister():
-    bpy.app.timers.unregister(check_error)
-    
+    bpy.app.timers.is_registered(check_error) and bpy.app.timers.unregister(check_error)
     bpy.types.VIEW3D_HT_header.remove(draw_custom_menu)
