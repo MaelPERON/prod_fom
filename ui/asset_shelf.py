@@ -1,5 +1,4 @@
 import bpy
-
 from ..operators.asset_manager import OpenAssetFolder
 
 def AssetMenu(self, context):
