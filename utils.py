@@ -39,6 +39,11 @@ def refresh_areas(areas=None):
             area.tag_redraw()
 
 def extract_from_filename(filename):
+    ''' Return multiple parameters from filename (if file is following nomenclature, if not, returns None).
+
+        :return: Null | 01 sequence / 02 shot / 03 stage / 04 version
+        '''
+
     return re.search(r"fom-seq_(\w*)-sh_(\d{1,})-(\w*)-v(\d{1,})", filename)
 
 def open_directory_in_explorer(path):
