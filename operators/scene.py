@@ -137,17 +137,34 @@ class ExportPlaybast(bpy.types.Operator):
     def execute(self, context):
         if match := extract_from_filename(bpy.path.display_name_from_filepath(context.blend_data.filepath)):
             seq, shot, task, version = match.groups()
-            camera = context.scene.camera.name
+            scene = context.scene
+            camera = scene.camera.name
+            render = scene.render
 
-            render_filepath = context.scene.render.filepath
+            # Store current render settings
+            render_settings = {
+                "filepath": context.scene.render.filepath,
+                "image_settings": render.image_settings.file_format,
+                "codec": render.ffmpeg.codec,
+                "format": render.ffmpeg.format
+            }
 
-            root_folder = "c:/tmp/FOM/Playblast"
-            context.scene.render.filepath = f"{root_folder}/{seq}_{shot}_{task}_v{version}_{camera}" + ("-v" + datetime.now().strftime("%m%d_%H%M%S") if self.include_date else "") + '.mp4'
-            bpy.ops.render.opengl(animation=True, write_still=True, view_context=True)
-            context.scene.render.filepath = render_filepath
+            root_folder = Path("c:/tmp/FOM/Playblast")
+            filename = f"{seq}_{shot}_{task}_v{version}_{camera}" + ("-v" + datetime.now().strftime("%m%d_%H%M%S") if self.include_date else "") + '.mp4'
+            render.filepath = (root_folder / filename).resolve().as_posix()
+            render.image_settings.file_format = 'FFMPEG'
+            render.ffmpeg.codec = 'H264'
+            render.ffmpeg.format = 'MPEG4'
+            try:
+                bpy.ops.render.opengl(animation=True, write_still=True, view_context=True)
+            finally:
+                if self.open_folder:
+                    open_directory_in_explorer(root_folder)
+                render.filepath = render_settings["filepath"]
+                render.image_settings.file_format = render_settings["image_settings"]
+                render.ffmpeg.codec = render_settings["codec"]
+                render.ffmpeg.format = render_settings["format"]
 
-            if self.open_folder:
-                open_directory_in_explorer(root_folder)
         else:
             self.report({'ERROR'}, "Filename does not match the expected pattern")
             return {"CANCELLED"}
