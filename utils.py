@@ -49,3 +49,6 @@ def open_directory_in_explorer(path):
         subprocess.Popen(['open', path])
     else:  # Linux ?
         subprocess.Popen(['xdg-open', path])
+
+def replace_last_terminal_line(message):
+    print("\033[F\033[K" + message, end="\r")
