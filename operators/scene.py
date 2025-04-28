@@ -1,8 +1,8 @@
 import bpy
 import re
 from datetime import datetime
-from ..utils import extract_from_filename, open_directory_in_explorer
 from pathlib import Path
+from ..utils import extract_from_filename, open_directory_in_explorer
 
 
 scene_properties = {
@@ -177,3 +177,66 @@ class ExportPlaybast(bpy.types.Operator):
         layout = self.layout
         layout.prop(self, "open_folder", toggle=True)
         layout.prop(self, "include_date", toggle=True)
+
+class ImportRenderTree(bpy.types.Operator):
+    bl_idname = "animation.fom_import_render_tree"
+    bl_label = "Import Render Tree"
+    bl_description = "Import a render tree into the current scene"
+    bl_options = {"REGISTER"}
+
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    def execute(self, context):
+        # Placeholder for future implementation
+        path = bpy.path.abspath("G:/Mon Drive/ENSI/01_E3/Film 1mn/02_PROD/assets/nodes/rendering.blend")
+        node_name = "BASE_CONFO"
+
+        ''' Checking the existence of an already created confo node '''
+        node_groups = (ng for ng in context.blend_data.node_groups if ng.bl_idname == "ConfoTree")
+        node_group = next(node_groups, None)
+        if node_group is not None:
+            if context.scene.get("active_confo_editor", None).name == node_group.name:
+                self.report({"WARNING"}, f'{node_name} already set in scene.')
+                return {"CANCELLED"}
+            
+            setattr(context.scene, "unattribut", node_group)
+            self.report({"WARNING", f'Set "{node_group.name}" as active confo editor (found {len(node_groups)-1} other)'})
+            return {"FINISHED"}
+    
+
+        ''' Appending base confo node group '''
+        with bpy.data.libraries.load(path, link=False) as (data_from, data_to):
+            if "BASE_CONFO" in data_from.node_groups:
+                data_to.node_groups = ["BASE_CONFO"]
+            else:
+                self.report({'ERROR'}, f"'BASE_CONFO' node tree not found in {path}")
+                return {'CANCELLED'}
+        
+
+        ''' Setting the node group as the scene active confo editor '''
+        node_group : bpy.types.Node = data_to.node_groups[0]
+        if hasattr(context.scene, "active_confo_editor"):
+            context.scene.active_confo_editor = context.blend_data.node_groups.get("BASE_CONFO")
+        
+        ''' Renaming the confo node group according to the filename nomenclature. '''
+        if context.blend_data.is_saved:
+            extract = extract_from_filename(Path(context.blend_data.filepath).name)
+            if extract is not None:
+                seq, shot = extract.groups()[:2]
+                node_group.name = f'CONFO_{seq}_{shot}'
+
+
+        ''' Setting it as the active node group tree for every confo editor areas.'''
+        for workspace in context.blend_data.workspaces:
+            for screen in workspace.screens:
+                for area in screen.areas:
+                    if area.type == "NODE_EDITOR" and area.ui_type == "ConfoTree":
+                        for space in area.spaces:
+                            if space.type == "NODE_EDITOR":
+                                space : bpy.types.SpaceNodeEditor
+                                space.pin = True
+                                space.node_tree = node_group
+
+        return {'FINISHED'}
