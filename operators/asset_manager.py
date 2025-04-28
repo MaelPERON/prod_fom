@@ -109,7 +109,7 @@ class ClearAssetFile(Mixin, Operator):
 		file_name = basename(filepath)
 		params = file_name.split("-")
 		if len(params) != 5:
-			raise None
+			return None
 
 		project, asset_type, asset_name, task, version = params
 		return {
@@ -210,7 +210,10 @@ class SetExporters(Mixin, Operator):
 		low_settings = {'add_leaf_bones': True, 'apply_scale_options': 'FBX_SCALE_NONE', 'apply_unit_scale': True, 'armature_nodetype': 'NULL', 'axis_forward': '-Z', 'axis_up': 'Y', 'bake_anim': False, 'bake_anim_force_startend_keying': True, 'bake_anim_simplify_factor': 1.0, 'bake_anim_step': 1.0, 'bake_anim_use_all_actions': True, 'bake_anim_use_all_bones': True, 'bake_anim_use_nla_strips': True, 'bake_space_transform': False, 'batch_mode': 'OFF', 'check_existing': True, 'collection': '', 'colors_type': 'SRGB', 'embed_textures': False, 'filepath': '//..\\export\\{{name}}_low.fbx', 'filter_glob': '*.fbx', 'global_scale': 1.0, 'mesh_smooth_type': 'OFF', 'object_types': {'MESH'}, 'path_mode': 'RELATIVE', 'primary_bone_axis': 'Y', 'prioritize_active_color': False, 'secondary_bone_axis': 'X', 'use_active_collection': False, 'use_armature_deform_only': False, 'use_batch_own_dir': True, 'use_custom_props': False, 'use_mesh_edges': False, 'use_mesh_modifiers': True, 'use_mesh_modifiers_render': True, 'use_metadata': True, 'use_selection': False, 'use_space_transform': True, 'use_subsurf': False, 'use_triangles': False, 'use_tspace': False, 'use_visible': False}
 
 		filename = display_name_from_filepath(bpy.data.filepath)
-		object = filename.split('-')[-2]
+		try:
+			object = filename.split('-')[-2]
+		except BaseException:
+			object = None
 
 		def obj_to_json(obj):
 			new_obj = {}
@@ -240,7 +243,11 @@ class SetExporters(Mixin, Operator):
 				for setting, value in new_settings.items():
 					setattr(settings, setting, value)
 
-				settings.filepath = settings.filepath.replace("{{name}}", object)
+				if object is not None:
+					settings.filepath = settings.filepath.replace("{{name}}", object)
+				else:
+					settings.filepath = f"./{type}.fbx"
+
 
 			self.report({"INFO"}, f"Settings set for {collection.name}")
 		return {"FINISHED"}
