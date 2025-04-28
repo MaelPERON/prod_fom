@@ -45,12 +45,12 @@ def get_scene_properties():
     global scene_properties
     return scene_properties
 
-def set_properties(scene: bpy.types.Scene):
+def set_properties(scene: bpy.types.Scene, mode):
     for prop, settings in scene_properties.items():
             if getattr(scene, prop, None) is None and (prop_type := getattr(settings, "type", None)) != "LOD":
                 if prop_type == "LOD":
-                    if self.mode != "DEFAULT":
-                        boolean = self.mode == "LOW"
+                    if mode != "DEFAULT":
+                        boolean = mode == "LOW"
                         scene[prop] = not boolean if getattr(settings, "inverted", False) else boolean
                 else:
                     scene[prop] = settings["default"]
@@ -70,7 +70,7 @@ class SetSceneCustomProperties(bpy.types.Operator):
 
     def execute(self, context):
         # Placeholder for custom property logic
-        set_properties(context.scene)
+        set_properties(context.scene, mode="LOW")
         self.report({'INFO'}, "Custom properties set successfully")
         return {'FINISHED'}
 
@@ -106,7 +106,7 @@ class SetSceneProperties(bpy.types.Operator):
             scene.render.use_simplify = self.mode == False
 
         # Variables
-        set_properties(scene)
+        set_properties(scene, self.mode)
 
         # for cam in [obj for obj in scene.objects if obj.type == "CAMERA"]:
         #     cam.data.dof.use_dof = False
