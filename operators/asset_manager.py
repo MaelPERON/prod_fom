@@ -257,6 +257,7 @@ class LowCollectionPreparation(Mixin, Operator):
 		
 		for obj in collection.objects:
 			if obj.type == "MESH":
+				obj.name = re.sub(r"_high(\.\d+)?$", "_low", obj.name)
 				for mod in obj.modifiers:
 					if mod.type.lower() not in ["nodes","mask","multires","armature","collision","particle_instance","particle_system"]:
 						print(f"[{obj.name}]\t\tremoving '{mod.name}'\t({mod.type})")
