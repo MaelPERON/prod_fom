@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 from ..utils import extract_from_filename, open_directory_in_explorer
+from math import floor
 
 
 scene_properties = {
@@ -25,6 +26,11 @@ scene_properties = {
         "name": "Neon LED Multiply",
         "description": "Multiply factor for the neon LED light",
         "default": 1.0,
+    },
+    "FOM_sim_frame": {
+        "name": "Simulation Overriden Frame",
+        "description": "Set the cache frame manually",
+        "default": 1,
     },
     "low_chains": {
         "name": "Low Chain",
@@ -159,7 +165,7 @@ class ExportPlaybast(bpy.types.Operator):
                 bpy.ops.render.opengl(animation=True, write_still=True, view_context=True)
             finally:
                 if self.open_folder:
-                    open_directory_in_explorer(root_folder)
+                    open_directory_in_explorer(root_folder.resolve().as_posix())
                 render.filepath = render_settings["filepath"]
                 render.image_settings.file_format = render_settings["image_settings"]
                 render.ffmpeg.codec = render_settings["codec"]
@@ -177,6 +183,48 @@ class ExportPlaybast(bpy.types.Operator):
         layout = self.layout
         layout.prop(self, "open_folder", toggle=True)
         layout.prop(self, "include_date", toggle=True)
+
+class SetFrameRangeStep(bpy.types.Operator):
+    bl_idname = "animation.fom_set_frame_range_step"
+    bl_label = "Set Frame Range Step"
+    bl_description = "Set the frame range and step for the current scene"
+    bl_options = {"REGISTER", "UNDO"}
+
+    mode: bpy.props.EnumProperty(
+        items=[
+            ("FULL", "Full", "Full mode"),
+            ("HALF", "Half", "Half mode"),
+            ("FML", "FML", "FML mode"),
+        ],
+        default="FULL",
+        name="Mode",
+        description="Select the mode for the frame range step"
+    )
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene is not None
+
+    def execute(self, context):
+        scene = context.scene
+        match self.mode:
+            case "FULL":
+                scene.frame_step = 1
+            case "HALF":
+                scene.frame_step = 2
+            case "FML":
+                scene.frame_step = floor((scene.frame_end-scene.frame_start)/2)
+        self.report({'INFO'}, f"Frame step set to {scene.frame_step}")
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "frame_start")
+        layout.prop(self, "frame_end")
+        layout.prop(self, "frame_step")
 
 class ImportRenderTree(bpy.types.Operator):
     bl_idname = "animation.fom_import_render_tree"
