@@ -1,5 +1,5 @@
 import bpy
-from ..operators.scene import SetSceneProperties, get_scene_properties, SetSceneCustomProperties
+from ..operators.scene import SetSceneProperties, get_scene_properties, SetSceneCustomProperties, SetFrameRangeStep
 from ..operators.render import RenderChecklist
 
 def create_property(prop, settings):
@@ -89,9 +89,12 @@ class ConfoLightGroup(bpy.types.Panel, PropertyPanel):
 
 
 
-def draw_menu(layout, context):
+def draw_menu(layout: bpy.types.UILayout, context):
 	scene = context.scene
 
+	layout.operator(SetSceneCustomProperties.bl_idname)
+	layout.separator()
+	layout.operator_context = "EXEC_SCREEN"
 
 	# Add a button to set the scene properties
 	for mode in ["LOW", "HIGH", "DEFAULT"]:
@@ -102,11 +105,15 @@ def draw_menu(layout, context):
 	layout.prop(scene.render, "film_transparent")
 	layout.prop(scene.cycles, "texture_limit_render")
 	
-	layout.operator(SetSceneCustomProperties.bl_idname)
 
 	layout.separator()
 	for setting in ["QUICK", "FULL"]:
 		op = layout.operator(RenderChecklist.bl_idname, text=f"Render Checklist ({setting})")
+		op.mode = setting
+
+	layout.separator()
+	for setting in ["FULL","HALF","FML"]:
+		op = layout.operator(SetFrameRangeStep.bl_idname, text=f"Frame step : {setting}")
 		op.mode = setting
 	# for prop, settings in get_scene_properties().items():
 	# 	if prop in scene:
