@@ -288,3 +288,37 @@ class ImportRenderTree(bpy.types.Operator):
                                 space.node_tree = node_group
 
         return {'FINISHED'}
+    
+class SwitchViewLayer(bpy.types.Operator):
+    bl_idname = "animation.fom_switch_view_layer"
+    bl_label = "Switch View Layer"
+    bl_description = "Switch to a specified view layer"
+    bl_options = {"REGISTER", "UNDO"}
+
+    view_layer_name: bpy.props.StringProperty(
+        name="View Layer Name",
+        description="Name of the view layer to switch to",
+        default=""
+    )
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene is not None and context.scene.view_layers
+
+    def execute(self, context):
+        view_layer = context.scene.view_layers.get(self.view_layer_name)
+        if view_layer:
+            context.window.view_layer = view_layer
+            self.report({'INFO'}, f"Switched to view layer: {self.view_layer_name}")
+            return {'FINISHED'}
+        else:
+            self.report({'ERROR'}, f"View layer '{self.view_layer_name}' not found")
+            return {'CANCELLED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "view_layer_name")
+
