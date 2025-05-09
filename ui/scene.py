@@ -1,5 +1,5 @@
 import bpy
-from ..operators.scene import SetSceneProperties, get_scene_properties, SetSceneCustomProperties, SetFrameRangeStep
+from ..operators.scene import SetSceneProperties, get_scene_properties, SetSceneCustomProperties, SetFrameRangeStep, SwitchViewLayer, ChangeRenderPrefix
 from ..operators.render import RenderChecklist
 
 def create_property(prop, settings):
@@ -90,7 +90,7 @@ class ConfoLightGroup(bpy.types.Panel, PropertyPanel):
 
 
 def draw_menu(layout: bpy.types.UILayout, context):
-	scene = context.scene
+	scene : bpy.types.Scene = context.scene
 
 	layout.operator(SetSceneCustomProperties.bl_idname)
 	layout.separator()
@@ -104,7 +104,18 @@ def draw_menu(layout: bpy.types.UILayout, context):
 	layout.separator()
 	layout.prop(scene.render, "film_transparent")
 	layout.prop(scene.cycles, "texture_limit_render")
-	
+
+	col = layout.column()
+	row = layout.row(align=True)
+	for vl in ["All","00_ENV","01_SET","02_SETDRESS","03_SUBJECT"]:
+		vl = scene.view_layers.get(vl, None)
+		if vl:
+			if vl.name != "All":
+				col.prop(vl, "use", toggle=True, text=f"{vl.name}")
+			op = row.operator(SwitchViewLayer.bl_idname, text=f"{vl.name}")
+			op.view_layer_name = vl.name
+
+	col.prop(scene.render, "use_single_layer", toggle=True)
 
 	layout.separator()
 	for setting in ["QUICK", "FULL"]:
@@ -115,6 +126,11 @@ def draw_menu(layout: bpy.types.UILayout, context):
 	for setting in ["FULL","HALF","FML"]:
 		op = layout.operator(SetFrameRangeStep.bl_idname, text=f"Frame step : {setting}")
 		op.mode = setting
+
+	row = layout.row(align=True)
+	for prefix in ["fml","ld","hd"]:
+		op = row.operator(ChangeRenderPrefix.bl_idname, text=prefix.upper())
+		op.new_prefix = prefix
 	# for prop, settings in get_scene_properties().items():
 	# 	if prop in scene:
 	# 		if (type := getattr(settings, "type", None)) == "LOD":
