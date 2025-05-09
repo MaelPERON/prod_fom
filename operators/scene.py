@@ -36,7 +36,7 @@ scene_properties = {
         "name": "Low Chain",
         "description": "Use low chain settings",
         "type": "LOD",
-        "inverted": True,
+        "inverted": False,
         "default": True
     },
     "low_ground": {
@@ -53,7 +53,7 @@ def get_scene_properties():
 
 def set_properties(scene: bpy.types.Scene, mode):
     for prop, settings in scene_properties.items():
-            if getattr(scene, prop, None) is None and (prop_type := getattr(settings, "type", None)) != "LOD":
+            if (prop_type := settings.get("type", None)) == "LOD" or scene.get(prop, None) is None:
                 if prop_type == "LOD":
                     if mode != "DEFAULT":
                         boolean = mode == "LOW"
@@ -97,6 +97,14 @@ class SetSceneProperties(bpy.types.Operator):
         return True
 
     def execute(self, context):
+        # Auto rename Main View Layer
+        vl = next((vl for vl in context.scene.view_layers if re.search(r"^(viewlayer|all)", vl.name.lower())), None)
+        if not vl:
+            self.report({"WARNING"}, "No View Layer found")
+        else:
+            vl.name = "All"
+            vl.use = False
+
         # Render settings
         scene = context.scene
         scene.render.resolution_x = 1280
@@ -108,6 +116,11 @@ class SetSceneProperties(bpy.types.Operator):
         scene.cycles.use_denoising = False
         scene.cycles.use_auto_tile = True
         scene.cycles.tile_size = 512
+        scene.render.image_settings.file_format = "OPEN_EXR_MULTILAYER"
+        scene.render.image_settings.exr_codec = "DWAA"
+        scene.render.image_settings.color_depth = "16"
+        scene.render.use_compositing = False
+        scene.render.use_sequencer = False
         if self.mode == "HIGH":
             scene.render.use_simplify = self.mode == False
 
@@ -152,7 +165,8 @@ class ExportPlaybast(bpy.types.Operator):
                 "filepath": context.scene.render.filepath,
                 "image_settings": render.image_settings.file_format,
                 "codec": render.ffmpeg.codec,
-                "format": render.ffmpeg.format
+                "format": render.ffmpeg.format,
+                "resolution": render.resolution_percentage
             }
 
             root_folder = Path("c:/tmp/FOM/Playblast")
@@ -161,6 +175,7 @@ class ExportPlaybast(bpy.types.Operator):
             render.image_settings.file_format = 'FFMPEG'
             render.ffmpeg.codec = 'H264'
             render.ffmpeg.format = 'MPEG4'
+            render.resolution_percentage = 100
             try:
                 bpy.ops.render.opengl(animation=True, write_still=True, view_context=True)
             finally:
@@ -170,6 +185,7 @@ class ExportPlaybast(bpy.types.Operator):
                 render.image_settings.file_format = render_settings["image_settings"]
                 render.ffmpeg.codec = render_settings["codec"]
                 render.ffmpeg.format = render_settings["format"]
+                render.resolution_percentage = render_settings["resolution"]
 
         else:
             self.report({'ERROR'}, "Filename does not match the expected pattern")
