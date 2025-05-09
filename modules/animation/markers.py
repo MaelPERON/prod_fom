@@ -1,4 +1,5 @@
 import bpy
+import re
 
 # def list_markers_as_csv():
 #     scene = bpy.context.scene
@@ -32,7 +33,7 @@ colors = [
 
 window = [win for win in C.window_manager.windows if win.scene.name == "All"][0]
 
-filepath = Path(__file__).parent / "../json/markers.csv"
+filepath = Path(__file__).parent / "../../json/markers.csv"
 
 with C.temp_override(window=window):
 	area = [area for area in bpy.context.screen.areas if area.type == "DOPESHEET_EDITOR"][0]
@@ -51,11 +52,25 @@ with C.temp_override(window=window):
 
 	# Create CSV file
 	with open(filepath.resolve().as_posix(), mode='w', newline='') as file:
-		writer = csv.writer(file)
-		writer.writerow(["Start", "Name", "Length", "Color"])
-		for seq in sequences:
+		writer = csv.DictWriter(file, fieldnames=["Start", "Name", "Length"])
+		# writer = csv.DictWriter(file, fieldnames=["Start", "End","Frames", "Name", "Length", "Color"])
+		for seq in sorted(sequences, key=lambda el: el.name):
 			position = seq.frame_final_start / scene.render.fps
 			frames = (seq.frame_final_end - seq.frame_final_start)
 			length = frames / scene.render.fps
 			color = '' if seq.color_tag == "NONE" else colors[int(seq.color_tag[-2:])-1]
-			writer.writerow([float(position), seq.name, float(length), color])
+			if (pattern := re.search(r"^(\w{2})[\-_](\d{2})", seq.name)) is not None:
+				name = '-'.join(pattern.groups()[:2])
+			else:
+				name = seq.name
+
+			writer.writerow({
+				"Start": round(position, 2),
+				"Name": name,
+				"Length": round(length, 2),
+				# "Color": color,
+				# "Frames": frames,
+				# "Start": int(seq.frame_offset_start),
+				# "End": int(seq.frame_offset_end)
+			})
+
