@@ -322,3 +322,36 @@ class SwitchViewLayer(bpy.types.Operator):
         layout = self.layout
         layout.prop(self, "view_layer_name")
 
+
+class ChangeRenderPrefix(bpy.types.Operator):
+    bl_idname = "animation.fom_change_render_prefix"
+    bl_label = "Change Render Prefix"
+    bl_description = "Change the render output prefix for the current scene"
+    bl_options = {"REGISTER", "UNDO"}
+
+    new_prefix: bpy.props.StringProperty(
+        name="New Prefix",
+        description="New prefix for render output",
+        default=""
+    )
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene is not None
+
+    def execute(self, context):
+        scene = context.scene
+        if self.new_prefix:
+            filepath = Path(scene.render.filepath).resolve().as_posix()
+            scene.render.filepath = re.sub(r"(.*render\/\w{2}\/\d{2}\/)(\w*\/)?(.+?)$", r"\1" + self.new_prefix.upper() + r"/\3", filepath)
+            return {'FINISHED'}
+        else:
+            self.report({'ERROR'}, "New prefix cannot be empty")
+            return {'CANCELLED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "new_prefix")
